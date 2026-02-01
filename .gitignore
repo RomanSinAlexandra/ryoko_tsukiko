@@ -1,0 +1,23 @@
+# env
+.env
+
+# yt-dlp cookies
+cookies.txt
+
+# node
+node_modules/
+
+# log
+log.txt
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# build (если есть)
+dist/
