@@ -74,11 +74,18 @@ export async function execute(interaction) {
   const resource = createAudioResource(station.url, {
     inputType: StreamType.Arbitrary
   });
+
+  state.currentRadio = {
+    key,
+    title: station.title,
+    url: station.url
+  };
+
   player.play(resource);
   cancelAutoLeave();
 
   const embed = new EmbedBuilder()
-    .setTitle(`📻 Включено радио: ${station.title}`)
+    .setTitle(`Включено радио: ${station.title}`)
     .setColor(0x5865F2)
     .setFooter({ text: `Запрошено: ${interaction.user.tag}` })
     .addFields(

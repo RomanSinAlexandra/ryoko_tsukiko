@@ -1,4 +1,4 @@
-function formatDuration(seconds) {
+export function formatDuration(seconds = 0) {
   if (!seconds || isNaN(seconds)) return '??:??';
 
   const h = Math.floor(seconds / 3600);

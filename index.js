@@ -18,7 +18,6 @@ const client = new Client({
 
 client.commands = new Collection();
 
-// Загружаем команды
 const commandsPath = path.resolve('./commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 for (const file of commandFiles) {
@@ -28,17 +27,19 @@ for (const file of commandFiles) {
   }
 }
 
-// Когда бот готов
 client.once('clientReady', async () => {
   console.log(`${client.user.tag}. Noblesse Oblige, I pray that you will continue to be a saviour.`);
 
-  // 🔹 Перезапуск деплоя каждый раз при старте
   await deployCommands();
 });
 
-
-// Обработка слеш-команд
 client.on('interactionCreate', async interaction => {
+    
+  if (interaction.isAutocomplete()) {
+    if (interaction.commandName === 'anime') {
+      return animeAutocomplete(interaction);
+    }
+  }
 
   if (interaction.isAutocomplete()) {
     return handleAutocomplete(interaction);
