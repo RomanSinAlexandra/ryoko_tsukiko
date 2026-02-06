@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 
 export const data = new SlashCommandBuilder()
   .setName('animesearch')
-  .setDescription('Хочешь, чтобы я угадала, из какого аниме эта картинка?.. Присылай, посмотрим, насколько хорошо я тебя знаю')
+  .setDescription('Хочешь, чтобы я угадала аниме по картинке? Присылай')
   .addAttachmentOption(option =>
     option
       .setName('image')

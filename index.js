@@ -35,11 +35,6 @@ client.once('clientReady', async () => {
 
 client.on('interactionCreate', async interaction => {
     
-  if (interaction.isAutocomplete()) {
-    if (interaction.commandName === 'anime') {
-      return animeAutocomplete(interaction);
-    }
-  }
 
   if (interaction.isAutocomplete()) {
     return handleAutocomplete(interaction);

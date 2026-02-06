@@ -18,20 +18,24 @@ export const data = new SlashCommandBuilder()
       .setName('tags')
       .setDescription('Теги… ну же, шепни мне свои самые грязные фантазии.')
       .setRequired(true)
+      .setAutocomplete(true) 
   );
 
 export async function execute(interaction) {
   if (!interaction.channel?.nsfw) {
-    const msg = interaction.reply({
+    const msg = await interaction.reply({
       content: 'Это слишком развратно для обычных чатов… Иди в NSFW, если хочешь увидеть, какая я бываю плохая.',
       ephemeral: true
     });
-
     autoDelete(msg);
     return;
   }
 
-  const tags = interaction.options.getString('tags').trim();
+  const rawTags = interaction.options.getString('tags').trim();
+
+  const tagsArray = rawTags.split(/\s+/);
+  const tags = tagsArray.join(' ');
+
   await interaction.deferReply();
 
   try {
@@ -41,34 +45,26 @@ export async function execute(interaction) {
       q: 'index',
       tags,
       limit: 100,
-      user_id: process.env.USERID,
-      api_key: process.env.API
+      user_id: process.env.USERID || '',
+      api_key: process.env.API || ''
     };
 
-    const url =
-      'https://api.rule34.xxx/index.php?' +
-      new URLSearchParams(params).toString();
-
+    const url = 'https://api.rule34.xxx/index.php?' + new URLSearchParams(params).toString();
     const response = await axios.get(url);
     const data = parser.parse(response.data);
 
     if (!data.posts?.post) {
-      const msg = interaction.editReply('Даже там ничего интересного… Похоже, придётся довольствоваться мной.');
+      const msg = await interaction.editReply('Даже там ничего интересного… Похоже, придётся довольствоваться мной.');
       autoDelete(msg);
       return;
     }
 
-    const posts = Array.isArray(data.posts.post)
-      ? data.posts.post
-      : [data.posts.post];
-
-    const valid = posts.filter(
-      p => p['@_file_url'] && !p['@_file_url'].endsWith('.webm')
-    );
+    const posts = Array.isArray(data.posts.post) ? data.posts.post : [data.posts.post];
+    const valid = posts.filter(p => p['@_file_url'] && !p['@_file_url'].endsWith('.webm'));
 
     if (!valid.length) {
-      const msg = interaction.editReply('Даже там ничего интересного… Похоже, придётся довольствоваться мной.');
-      autoDelete;
+      const msg = await interaction.editReply('Даже там ничего интересного… Похоже, придётся довольствоваться мной.');
+      autoDelete(msg);
       return;
     }
 
