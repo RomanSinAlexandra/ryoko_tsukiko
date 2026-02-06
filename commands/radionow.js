@@ -6,12 +6,12 @@ export const name = 'radionow';
 
 export const data = new SlashCommandBuilder()
   .setName('radionow')
-  .setDescription('Показать текущее радио');
+  .setDescription('Хочешь узнать, что сейчас звучит в моих наушниках?.. Смотри внимательно');
 
 export async function execute(interaction) {
   if (state.mode !== 'radio' || !state.currentRadio) {
     const msg = await interaction.reply({
-      content: '📭 Сейчас радио не играет',
+      content: 'Радио молчит… тишина такая уютная, когда мы вдвоём, правда?',
       ephemeral: true
     });
     autoDelete(msg);
@@ -21,13 +21,13 @@ export async function execute(interaction) {
   const { title, url } = state.currentRadio;
 
   const embed = new EmbedBuilder()
-    .setTitle('Сейчас играет радио')
+    .setTitle('Сейчас играет радио… ммм, хочешь, чтобы я подпевала тебе на ушко?')
     .setColor(0x5865F2)
     .addFields(
       { name: 'Станция', value: `**${title}**` },
       { name: 'URL', value: url }
     )
-    .setFooter({ text: `Запросил: ${interaction.user.tag}` });
+    .setFooter({ text: `Запросил: ${interaction.user.tag}. Такой любопытный… нравится, когда ты интересуешься, что у меня в плеере` });
 
   const msg = await interaction.reply({ embeds: [embed] });
   autoDelete(msg, 60_000);

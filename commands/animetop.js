@@ -6,7 +6,7 @@ export const name = 'animetop';
 
 export const data = new SlashCommandBuilder()
   .setName('animetop')
-  .setDescription('Самые высокооценённые аниме');
+  .setDescription('Хочешь, чтобы я показала тебе лучших девочек? Только не влюбись в них сильнее, чем в меня');
 
 export async function execute(interaction) {
   await interaction.deferReply();

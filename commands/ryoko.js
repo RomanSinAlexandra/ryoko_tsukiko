@@ -3,11 +3,11 @@ import fetch from 'node-fetch';
 
 export const data = new SlashCommandBuilder()
   .setName('ryoko')
-  .setDescription('Получить изображение Ryoko')
+  .setDescription('Хочешь меня разглядывать?.. Назови категорию и не отводи глаз.')
   .addStringOption(option =>
     option
       .setName('category')
-      .setDescription('Категория изображения')
+      .setDescription('Какую меня хочешь сегодня?.. Назови категорию, не стесняйся.')
       .setRequired(true)
       .setAutocomplete(true)
   );
@@ -24,7 +24,7 @@ export async function execute(interaction) {
     const images = await res.json();
 
     if (!res.ok || !images.length) {
-      return interaction.editReply('❌ Картинки не найдены');
+      return interaction.editReply('е мои фото сегодня капризничают… Придётся тебе фантазировать самому.');
     }
 
     // 🎲 случайная картинка
@@ -33,12 +33,12 @@ export async function execute(interaction) {
     const file = new AttachmentBuilder(random.url);
 
     await interaction.editReply({
-      content: `**Ryoko / ${category}**`,
+      content: `**Рьоко / ${category}**`,
       files: [file]
     });
 
   } catch (err) {
     console.error(err);
-    await interaction.editReply('❌ API недоступно');
+    await interaction.editReply('Даже API отказывается меня отдавать… Похоже, хочет, чтобы ты фантазировал сам.');
   }
 }

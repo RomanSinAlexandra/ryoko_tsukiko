@@ -8,13 +8,13 @@ export const name = 'resume';
 
 export const data = new SlashCommandBuilder()
   .setName('resume')
-  .setDescription('Возобновить воспроизведение');
+  .setDescription('Хочешь, чтобы я продолжила играть?.. Хорошо… только для тебя возобновляю');
 
 export async function execute(interaction) {
 
   if (state.mode === 'radio') {
     const msg = interaction.reply({
-      content: 'Радио нельзя возобновить',
+      content: 'Радио не слушается команды «возобновить»… А ты ведь слушаешься меня, правда?',
       ephemeral: true
     });
     autoDelete(msg);
@@ -23,7 +23,7 @@ export async function execute(interaction) {
 
   if (!player) {
     const msg = interaction.reply({
-      content: 'Плеер не инициализирован',
+      content: 'Плеер ещё спит… Хочешь, я его нежно разбужу? Или ты сделаешь это сам.',
       ephemeral: true
     });
     autoDelete(msg);
@@ -32,7 +32,7 @@ export async function execute(interaction) {
 
   if (player.state.status !== AudioPlayerStatus.Paused) {
     const msg = interaction.reply({
-      content: 'Воспроизведение не находится на паузе',
+      content: 'Уже играет… ты просто хочешь, чтобы я чаще говорила с тобой, да?',
       ephemeral: true
     });
     autoDelete(msg);
@@ -42,7 +42,7 @@ export async function execute(interaction) {
   const resumed = player.unpause();
   if (!resumed) {
     const msg = interaction.reply({
-      content: 'Не удалось возобновить воспроизведение',
+      content: 'Не получилось возобновить… даже музыка сегодня капризничает. Ну ничего — зато я вся твоя.',
       ephemeral: true
     });
     autoDelete(msg);
@@ -54,7 +54,7 @@ export async function execute(interaction) {
 
   cancelAutoLeave();
 
-  const msg = await interaction.reply('Воспроизведение продолжено');
+  const msg = await interaction.reply('Продолжаем… ммм, как приятно снова звучать только для тебя.');
 
   autoDelete(msg);
 }

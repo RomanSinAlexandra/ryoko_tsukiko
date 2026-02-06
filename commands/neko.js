@@ -3,11 +3,11 @@ import { autoDelete } from '../helpers/autoDelete.js';
 
 export const data = new SlashCommandBuilder()
   .setName('neko')
-  .setDescription('Получить аниме арт')
+  .setDescription('Кошечка? Ммм… я могу быть очень ласковой, когда захочу.')
   .addStringOption(option =>
     option
       .setName('type')
-      .setDescription('Тип аниме арта')
+      .setDescription('Какую неко хочешь? Назови тип… я послушаюсь…')
       .addChoices(
         { name: 'neko', value: 'neko' },
         { name: 'waifu', value: 'waifu' },
@@ -32,7 +32,7 @@ export async function execute(interaction) {
 
     const art = data.results?.[0];
     if (!art) {
-      const msg = interaction.editReply('❌ Не удалось получить арт');
+      const msg = interaction.editReply('Арт убежал… Испугался, что я его съем одним взглядом.');
       autoDelete(msg);
       return;
     }
@@ -51,7 +51,7 @@ export async function execute(interaction) {
 
   } catch (err) {
     console.error(err);
-    const msg = await interaction.editReply('Ошибка при получении арта');
+    const msg = await interaction.editReply('Не получилось достать арт… Какая вредная кошечка попалась. Попробуй ещё раз, пока я добрая.');
     autoDelete(msg);
   }
 }

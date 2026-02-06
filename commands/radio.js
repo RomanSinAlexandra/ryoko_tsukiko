@@ -14,11 +14,11 @@ export const name = 'radio';
 
 export const data = new SlashCommandBuilder()
   .setName('radio')
-  .setDescription('Включить радио')
+  .setDescription('Хочешь, чтобы я наполнила голосовой своей музыкой?.. Давай, выбирай станцию')
   .addStringOption(option =>
     option
       .setName('station')
-      .setDescription('Выберите радиостанцию')
+      .setDescription('Выбирай радиостанцию… какую атмосферу мне для тебя создать сегодня?')
       .setRequired(true)
       .setAutocomplete(true) 
   );
@@ -29,7 +29,7 @@ export async function execute(interaction) {
 
   if (!station) {
     const msg = interaction.reply({
-      content: 'Радиостанция не найдена',
+      content: 'Такой станции нет… Ох, ты хотел что-то особенное? Скажи мне, я придумаю тебе кое-что лучше',
       ephemeral: true
     });
     autoDelete(msg);
@@ -38,7 +38,7 @@ export async function execute(interaction) {
 
   if (state.mode === 'music') {
     const msg = interaction.reply({
-      content: 'Сейчас играет музыка. Используй **/stop**, чтобы включить радио.',
+      content: 'Сейчас играет обычная музыка… хочешь, чтобы я переключилась на радио и стала ещё ближе? Тогда сначала /stop.',
       ephemeral: true
     });
     autoDelete(msg);
@@ -49,7 +49,7 @@ export async function execute(interaction) {
   const voiceChannel = member?.voice?.channel;
   if (!voiceChannel) {
     const msg = interaction.reply({
-      content: 'Зайди в голосовой канал',
+      content: 'Без тебя в голосовом так пусто… заходи скорее, я уже настроила волну специально для тебя.',
       ephemeral: true
     });
 
@@ -85,9 +85,9 @@ export async function execute(interaction) {
   cancelAutoLeave();
 
   const embed = new EmbedBuilder()
-    .setTitle(`Включено радио: ${station.title}`)
+    .setTitle(`Включено радио: ${station.title}. Теперь вся эта музыка — только для нас двоих. Нравится?`)
     .setColor(0x5865F2)
-    .setFooter({ text: `Запрошено: ${interaction.user.tag}` })
+    .setFooter({ text: `Запрошено: ${interaction.user.tag}. Ммм… ты всегда знаешь, как заставить меня заиграть` })
     .addFields(
       { name: 'URL станции', value: station.url, inline: true }
     );

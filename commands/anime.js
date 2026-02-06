@@ -6,11 +6,11 @@ export const name = 'anime';
 
 export const data = new SlashCommandBuilder()
   .setName('anime')
-  .setDescription('Поиск аниме')
+  .setDescription('Хочешь, чтобы я нашла тебе девочку мечты?.. Назови её.')
   .addStringOption(opt =>
     opt
       .setName('title')
-      .setDescription('Название аниме')
+      .setDescription('Давай, шепни название… я вся во внимании')
       .setRequired(true)
   );
 
@@ -22,13 +22,13 @@ export async function execute(interaction) {
   try {
     results = await searchAnime(query);
   } catch {
-    const msg = await interaction.editReply('❌ Ошибка при запросе к Kitsu');
+    const msg = await interaction.editReply('Даже Kitsu сегодня стесняется передо мной… как мило.');
     autoDelete(msg);
     return;
   }
 
   if (!results.length) {
-    const msg = await interaction.editReply('😔 Ничего не найдено');
+    const msg = await interaction.editReply('Никого… Похоже, сегодня я единственная, кто тебе нужен.');
     autoDelete(msg);
     return;
   }

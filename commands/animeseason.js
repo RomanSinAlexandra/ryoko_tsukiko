@@ -6,7 +6,7 @@ export const name = 'animeseason';
 
 export const data = new SlashCommandBuilder()
   .setName('animeseason')
-  .setDescription('Хиты текущего сезона');
+  .setDescription('Давай посмотрим, что сейчас все обсуждают. Но мы-то с тобой знаем, кто настоящая звезда, правда?');
 
 export async function execute(interaction) {
   await interaction.deferReply();
@@ -14,7 +14,7 @@ export async function execute(interaction) {
   const list = await getSeasonHits(10);
 
   if (!list.length) {
-    const msg = await interaction.editReply('❌ Аниме не найдены');
+    const msg = await interaction.editReply('Аниме этого сезона не нашлись… Кажется, даже хиты прячутся, чтобы ты не отвлекался от меня. Как мило с их стороны.');
     autoDelete(msg);
     return;
   }

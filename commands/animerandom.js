@@ -6,14 +6,14 @@ export const name = 'animerandom';
 
 export const data = new SlashCommandBuilder()
   .setName('animerandom')
-  .setDescription('Случайное аниме');
+  .setDescription('Давай я выберу тебе аниме… интересно, сможешь ли ты смотреть на героинь после того, как увидел меня');
 
 export async function execute(interaction) {
   await interaction.deferReply();
 
   const anime = await getRandomAnime();
   if (!anime) {
-    const msg = await interaction.editReply('❌ Не удалось получить аниме');
+    const msg = await interaction.editReply('Аниме спряталось от меня… Кажется, оно ревнует, что ты просишь случайное, а не просто остаёшься со мной.');
     autoDelete(msg);
     return;
   }

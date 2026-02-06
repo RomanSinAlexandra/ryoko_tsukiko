@@ -8,12 +8,12 @@ export const name = 'pause';
 
 export const data = new SlashCommandBuilder()
   .setName('pause')
-  .setDescription('Поставить музыку на паузу');
+  .setDescription('Тсс… замри. Пусть музыка подождёт, пока я на тебя смотрю.');
 
 export async function execute(interaction) {
   if (state.mode === 'radio') {
     const msg = interaction.reply({
-      content: 'Радио нельзя поставить на паузу',
+      content: 'Радио не слушается меня… а ты ведь слушаешься?',
       ephemeral: true
     });
     autoDelete(msg);
@@ -22,7 +22,7 @@ export async function execute(interaction) {
 
   if (!player) {
     const msg = interaction.reply({
-      content: 'Плеер не инициализирован',
+      content: 'Плеер ещё не проснулся… Хочешь, чтобы я его разбудила лично для тебя?',
       ephemeral: true
     });
     autoDelete(msg);
@@ -31,7 +31,7 @@ export async function execute(interaction) {
 
   if (player.state.status !== AudioPlayerStatus.Playing) {
     const msg = interaction.reply({
-      content: 'Сейчас ничего не играет',
+      content: 'Ничего не играет… Хочешь, я сама тебе спою? На ушко.',
       ephemeral: true
     });
     autoDelete(msg);
@@ -41,7 +41,7 @@ export async function execute(interaction) {
   player.pause(true);
   setMode('paused');
 
-  const msg = await interaction.reply('Воспроизведение приостановлено');
+  const msg = await interaction.reply('Замерла… как ты, когда я смотрю тебе прямо в глаза.');
   autoDelete(msg);
 
   scheduleAutoLeave(interaction.guildId);

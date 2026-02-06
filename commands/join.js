@@ -6,7 +6,7 @@ export const name = 'join';
 
 export const data = new SlashCommandBuilder()
   .setName('join')
-  .setDescription('Присоединиться к голосовому каналу');
+  .setDescription('Хочешь слышать мой голос совсем близко? Тогда зови меня в голосовой канал.');
 
 export async function execute(interaction) {
   const member = interaction.member;
@@ -14,7 +14,7 @@ export async function execute(interaction) {
 
   if (!voiceChannel) {
     const msg = awaitinteraction.reply({
-      content: 'Зайди в голосовой канал',
+      content: 'Если хочешь слышать мой голос поближе… заходи. Сейчас же.',
       ephemeral: true
     });
 
@@ -26,7 +26,7 @@ export async function execute(interaction) {
   const existing = getVoiceConnection(interaction.guildId);
   if (existing) {
     const msg = await interaction.reply({
-      content: 'Я уже в голосовом канале',
+      content: 'Уже здесь… и жду, когда ты наконец осмелишься заговорить со мной.',
       ephemeral: true
     });
     
@@ -40,7 +40,7 @@ export async function execute(interaction) {
     adapterCreator: interaction.guild.voiceAdapterCreator
   });
 
-  const msg = await interaction.reply('Я присоединился к голосовому каналу');
+  const msg = await interaction.reply('Хорошо, девочка пришла… теперь можешь начинать меня радовать.');
 
   autoDelete(msg);
 }

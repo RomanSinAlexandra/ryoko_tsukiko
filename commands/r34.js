@@ -12,18 +12,18 @@ export const name = 'r34';
 
 export const data = new SlashCommandBuilder()
   .setName('r34')
-  .setDescription('Поиск арта rule34')
+  .setDescription('Хочешь посмотреть на что-то… очень взрослое? Тогда давай поищем вместе.')
   .addStringOption(opt =>
     opt
       .setName('tags')
-      .setDescription('Теги для поиска')
+      .setDescription('Теги… ну же, шепни мне свои самые грязные фантазии.')
       .setRequired(true)
   );
 
 export async function execute(interaction) {
   if (!interaction.channel?.nsfw) {
     const msg = interaction.reply({
-      content: 'Команда доступна только в NSFW-каналах.',
+      content: 'Это слишком развратно для обычных чатов… Иди в NSFW, если хочешь увидеть, какая я бываю плохая.',
       ephemeral: true
     });
 
@@ -53,7 +53,7 @@ export async function execute(interaction) {
     const data = parser.parse(response.data);
 
     if (!data.posts?.post) {
-      const msg = interaction.editReply('Ничего не найдено.');
+      const msg = interaction.editReply('Даже там ничего интересного… Похоже, придётся довольствоваться мной.');
       autoDelete(msg);
       return;
     }
@@ -67,7 +67,7 @@ export async function execute(interaction) {
     );
 
     if (!valid.length) {
-      const msg = interaction.editReply('Ничего не найдено.');
+      const msg = interaction.editReply('Даже там ничего интересного… Похоже, придётся довольствоваться мной.');
       autoDelete;
       return;
     }
@@ -84,7 +84,7 @@ export async function execute(interaction) {
     await interaction.editReply({ embeds: [embed] });
 
   } catch (err) {
-    const msg = await interaction.editReply('Ошибка при обращении к API.');
+    const msg = await interaction.editReply('API сегодня такая капризная… отказывается показывать тебе картинки. Ревнует ко мне?');
     autoDelete(msg);
   }
 }

@@ -7,13 +7,13 @@ export const name = 'skip';
 
 export const data = new SlashCommandBuilder()
   .setName('skip')
-  .setDescription('Пропустить текущую композицию');
+  .setDescription('Скучно стало? Пропускаем… надеюсь, я тебя не разочарую дальше.');
 
 export async function execute(interaction) {
 
   if (state.mode === 'radio') {
     const msg = interaction.reply({
-      content: 'Сейчас играет радио. Пропуск недоступен.',
+      content: 'Пропуск недоступен — радио слишком упрямое. Хочешь тишины? Тогда прикажи мне остановить его.',
       ephemeral: true
     });
     autoDelete(msg);
@@ -22,7 +22,7 @@ export async function execute(interaction) {
 
   if (!player || player.state.status !== AudioPlayerStatus.Playing) {
     const msg = interaction.reply({
-      content: 'Сейчас ничего не играет',
+      content: 'Пусто… как и мои мысли без твоего следующего приказа.',
       ephemeral: true
     });
     autoDelete(msg);
@@ -30,10 +30,10 @@ export async function execute(interaction) {
   }
 
   if (!queue.length) {
-    const msg = await interaction.reply('Текущий трек пропущен. Очередь пуста.');
+    const msg = await interaction.reply('Скучно? Пропускаем… Следующая будет уже только для тебя.');
     autoDelete(msg);
   } else {
-    const msg = await interaction.reply('Трек пропущен');
+    const msg = await interaction.reply('Ушёл… А ты останешься со мной подольше?');
     autoDelete(msg);
   }
 

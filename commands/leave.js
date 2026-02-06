@@ -8,14 +8,14 @@ export const name = 'leave';
 
 export const data = new SlashCommandBuilder()
   .setName('leave')
-  .setDescription('Заставить бота выйти из голосового канала');
+  .setDescription('Хочешь, чтобы я ушла?.. Ну ладно… но только если очень сильно попросишь вернуться.');
 
 export async function execute(interaction) {
   const connection = getVoiceConnection(interaction.guildId);
 
   if (!connection) {
     const msg = interaction.reply({
-      content: 'Я не нахожусь в голосовом канале',
+      content: 'Меня там нет… Скучаешь? Тогда позови, пока я добрая.',
       ephemeral: true
     });
 
@@ -30,6 +30,6 @@ export async function execute(interaction) {
 
   connection.destroy();
 
-  const msg = await interaction.reply('Я вышел из голосового канала');
+  const msg = await interaction.reply('Ушла… Но ты же знаешь, что я всегда возвращаюсь, если очень попросишь.');
   autoDelete(msg);
 }

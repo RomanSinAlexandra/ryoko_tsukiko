@@ -16,7 +16,7 @@ export async function execute(interaction) {
 
   if (!player || (state.mode === 'idle' && queue.length === 0)) {
     const msg = interaction.reply({
-      content: 'Сейчас ничего не воспроизводится',
+      content: 'Тишина… как мило. Ничего не играет, зато ты можешь услышать только мой голос.',
       ephemeral: true
     });
     autoDelete(msg);
@@ -29,7 +29,7 @@ export async function execute(interaction) {
 
   setMode('idle');
 
-  const msg = await interaction.reply('⏹Воспроизведение остановлено');
+  const msg = await interaction.reply('Всё затихло… теперь только ты и я. Нравится эта тишина?');
 
   const connection = getVoiceConnection(interaction.guildId);
   if (connection) {

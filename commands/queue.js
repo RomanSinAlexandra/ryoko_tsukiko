@@ -6,19 +6,19 @@ export const name = 'queue';
 
 export const data = new SlashCommandBuilder()
   .setName('queue')
-  .setDescription('Показать очередь воспроизведения');
+  .setDescription('Очередь треков… интересно, сколько из них ты выбрал, думая обо мне.');
 
 export async function execute(interaction) {
   if (state.mode === 'radio') {
     return interaction.reply({
-      content: '📻 Сейчас играет радио. Очередь недоступна.',
+      content: 'Радио захватило меня… но ты же можешь меня отобрать, если очень постараешься.',
       flags: MessageFlags.Ephemeral
     });
   }
 
   if (!queue.length) {
     return interaction.reply({
-      content: '📭 Очередь пуста',
+      content: 'Очередь пуста… Хочешь занять всё моё внимание сам?',
       flags: MessageFlags.Ephemeral
     });
   }
@@ -33,7 +33,7 @@ export async function execute(interaction) {
         const info = await fetchTrackInfo(item.query);
         return `**${index + 1}.** ${info.title} \`[${info.duration}]\``;
       } catch {
-        return `**${index + 1}.** Не удалось получить информацию`;
+        return `**${index + 1}.**Не удалось достать данные… Похоже, сегодня я останусь единственным, что ты услышишь.`;
       }
     })
   );
@@ -44,6 +44,6 @@ export async function execute(interaction) {
       : '';
 
   await interaction.editReply({
-    content: `**Очередь воспроизведения:**\n\n${tracks.join('\n')}${extra}`
+    content: `**Очередь треков… смотри, сколько ещё моментов мы проведём вместе:**\n\n${tracks.join('\n')}${extra}`
   });
 }

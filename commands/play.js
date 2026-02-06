@@ -17,11 +17,11 @@ export const name = 'play';
 
 export const data = new SlashCommandBuilder()
   .setName('play')
-  .setDescription('Воспроизвести музыку')
+  .setDescription('Музыка? Ммм… Назови её, и я заставлю её звучать так, как ты любишь.')
   .addStringOption(option =>
     option
       .setName('query')
-      .setDescription('Ссылка или название трека')
+      .setDescription('Давай, кидай ссылку или просто скажи название… я вся внимание.')
       .setRequired(true)
   );
 
@@ -29,7 +29,7 @@ export async function execute(interaction) {
   const query = interaction.options.getString('query'); 
 
   if (!query) {
-    const msg = interaction.reply('Укажи ссылку или название трека');
+    const msg = interaction.reply('Назови песню… или лучше — скажи, о чём ты сейчас думаешь, глядя на меня.');
     autoDelete(msg);
     return;
   }
@@ -37,7 +37,7 @@ export async function execute(interaction) {
   const member = interaction.guild.members.cache.get(interaction.user.id);
   const voiceChannel = member?.voice?.channel;
   if (!voiceChannel){
-    const msg = interaction.reply('Зайди в голосовой канал');
+    const msg = interaction.reply('Без тебя в голосовом так пусто… заходи, пока я не заскучала по-настоящему.');
     autoDelete(msg);
     return;
   }
@@ -54,7 +54,7 @@ export async function execute(interaction) {
 
   if (state.mode === 'radio') {
     const msg = interaction.reply(
-      'Сейчас играет радио. Используй **/stop**, чтобы включить музыку.'
+      'Радио мешает… Хочешь, чтобы я звучала только для тебя? Тогда /stop.'
     );
     autoDelete(msg);
     return;
@@ -65,14 +65,14 @@ export async function execute(interaction) {
       const data = await getData(query);
       query = `${data.artist?.name ?? data.artists[0].name} - ${data.name}`;
     } catch (e) {
-      const msg = interaction.reply('Не удалось обработать Spotify ссылку');
+      const msg = interaction.reply('Spotify-ссылка не поддалась… Какая дерзость. Попробуй ещё раз — и на этот раз лучше не разочаровывай меня.');
       autoDelete(msg);
       return;
     }
   }
 
   queue.push({ query, interaction });
-  const msg = await interaction.reply(`Добавлено в очередь: **${query}**`);
+  const msg = await interaction.reply(`Твоя песня встала в очередь… как и ты — в мои мысли на сегодня: **${query}**`);
   autoDelete(msg);
 
   if (player.state.status !== AudioPlayerStatus.Playing) {
