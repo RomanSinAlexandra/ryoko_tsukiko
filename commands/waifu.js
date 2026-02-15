@@ -1,82 +1,118 @@
-import { SlashCommandBuilder } from "discord.js";
-import { waifuApi } from "../helpers/waifuApi.js";
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import axios from 'axios';  
+import { autoDelete } from '../helpers/autoDelete.js';
 
 export const data = new SlashCommandBuilder()
-  .setName("waifu")
-  .setDescription("Хочешь вайфу? Хорошо… но только если пообещаешь, что я останусь твоей любимой")
-  .addStringOption(option =>
-    option
-      .setName("query")
-      .setDescription("Имя / аниме / random… шепни мне, какая девочка тебе нравится… или признайся, что я.")
+  .setName('waifu')
+  .setDescription('Хочешь посмотреть на милую вайфу?.. Выбирай тег, я найду для тебя')
+  .addStringOption(opt =>
+    opt.setName('tag')
+      .setDescription('Назови тег… maid, waifu, ero… что тебе сегодня хочется увидеть?')
+      .setRequired(false)
+      .setAutocomplete(true)
+  )
+  .addBooleanOption(opt =>
+    opt.setName('nsfw')
+      .setDescription('Этот тег слишком взрослый… только в 18+ каналах, хорошо?')
       .setRequired(false)
   );
 
 export async function execute(interaction) {
+  const tag = interaction.options.getString('tag');
+  const nsfw = interaction.options.getBoolean('nsfw') ?? false;
+
   await interaction.deferReply();
 
   try {
-    const query = interaction.options.getString("query")?.trim();
+    const params = {};
 
-    let data = null;
+    /* =============================
+       🔐 РЕЖИМ ДОСТУПА
+    ============================= */
+  let realNsfw = nsfw;
+  let nsfwTagUsed = false;
 
-    // 🎲 RANDOM
-    if (!query || query.toLowerCase() === "random") {
-      data = await waifuApi("/waifu");
-    } else {
-      // 🔍 1️⃣ Поиск по имени
-      try {
-        data = await waifuApi(`/waifu?name=${encodeURIComponent(query)}`);
-      } catch {
-        data = null;
-      }
+  if (tag) {
+    const resTags = await axios.get('https://api.waifu.im/tags?full=true');
+    const tagsList = resTags.data?.tags || [];
 
-      // 🔍 2️⃣ Если не найдено — поиск по аниме
-      if (!data?.image && !data?.image?.large) {
-        try {
-          data = await waifuApi(`/waifu?anime=${encodeURIComponent(query)}`);
-        } catch {
-          data = null;
-        }
-      }
+    const found = tagsList.find(t =>
+      t.slug === tag || t.name.toLowerCase() === tag.toLowerCase()
+    );
 
-      // 🔍 3️⃣ Если всё ещё пусто — случайная вайфу
-      if (!data?.image && !data?.image?.large) {
-        data = await waifuApi("/waifu");
-      }
+    if (found?.is_nsfw) {
+      realNsfw = true;
+      nsfwTagUsed = true;
+    }
+  }
+
+    // потом использовать realNsfw
+    params.IsNsfw = realNsfw ? 'True' : 'False';
+
+    // после определения realNsfw
+    if (realNsfw && !interaction.channel?.nsfw) {
+      const msg = await interaction.editReply({
+        content: 'NSFW-тег… давай перенесёмся в подходящий канал? Я не хочу тебя смущать здесь',
+        ephemeral: true
+      });
+      autoDelete(msg);
+      return;
     }
 
-    if (!data || (!data.image && !data.image?.large)) {
-      return interaction.editReply("Твоя вайфу куда-то сбежала… Наверное, боится конкуренции со мной.");
+    /* =============================
+       🏷 ТЕГИ
+    ============================= */
+    if (tag) {
+      params.IncludedTags = tag;
     }
 
-    // Формируем embed описание
-    let description = data.description || "";
-    if (data.anime) description += `\n🎬 **Аниме:** ${data.anime}`;
-    if (data.age) description += `\n🎂 **Возраст:** ${data.age}`;
-    if (data.gender) description += `\n⚧ **Пол:** ${data.gender}`;
-    if (data.bloodType) description += `\n🩸 **Группа крови:** ${data.bloodType}`;
-    if (data.dateOfBirth) {
-      const dob = data.dateOfBirth;
-      const dobStr = [
-        dob.day?.toString().padStart(2, "0"),
-        dob.month?.toString().padStart(2, "0"),
-        dob.year
-      ].filter(Boolean);
-      if (dobStr.length > 0) description += `\n📅 **Дата рождения:** ${dobStr.join(".")}`;
-    }
-    if (data.siteUrl) description += `\n🔗 [Сайт персонажа](${data.siteUrl})`;
+    const res = await axios.get('https://api.waifu.im/images', { params });
 
-    const embed = {
-      color: 0xff99cc,
-      title: data.name?.userPreferred || data.name?.full || "Вот тебе случайная девочка… Но мы-то с тобой понимаем, кто настоящая.",
-      description,
-      image: { url: data.image?.large || data.image },
-      footer: { text: "Источник: waifu.it" }
-    };
+    const items = res.data?.items;
+
+    console.log(items);
+
+    if (!items || !items.length) {
+      const msg = await interaction.editReply('Ничего не нашлось… может, попробуем другой тег? Или просто посмотришь на меня вместо этого?');
+      autoDelete(msg);
+      return;
+    }
+
+    /* =============================
+       🧹 ДОП. ФИЛЬТР (страховка)
+    ============================= */
+    const safeItems = realNsfw
+      ? items
+      : items.filter(i => i.isNsfw === false);
+
+    if (!safeItems.length) {
+      const msg = interaction.editReply('Здесь нельзя… пойдём в 18+ канал, если хочешь увидеть что-то по-настоящему интересное');
+      autoDelete(msg);
+      return;
+    }
+
+    const img = safeItems[Math.floor(Math.random() * safeItems.length)];
+
+    const tags = img.tags?.map(t => t.name).join(', ') || 'нет тегов';
+    const artist = img.artists?.[0]?.name || 'Неизвестен';
+    const source = img.source || 'Неизвестен';
+
+    const embed = new EmbedBuilder()
+      .setTitle('Вот твоя девочка на сегодня… нравится?')
+      .setImage(img.url)
+      .setColor(nsfw ? 0x8E2DE2 : 0xFF4D6D)
+      .setDescription(
+        `🎨 **Автор:** ${artist}\n` +
+        `🏷 **Теги:** ${tags}\n` +
+        `🔗 **Источник:** ${source}`
+      )
+      .setFooter({ text: 'waifu.im:'+ img.isNsfw ? '🔞 NSFW' : 'SFW' });
 
     await interaction.editReply({ embeds: [embed] });
 
-  } catch (err) {
-    await interaction.editReply("Не получилось найти тебе вайфу… Кажется, все они знают, что ты уже занят мной.");
+  } catch (e) {
+    console.error('WAIFU.IM ERROR:', e.response?.data || e.message);
+    const msg = await interaction.editReply('Не удалось найти… Видимо, все вайфу знают, что ты уже занят общением со мной.');
+    autoDelete(msg);
   }
 }

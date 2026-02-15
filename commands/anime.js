@@ -12,6 +12,7 @@ export const data = new SlashCommandBuilder()
       .setName('title')
       .setDescription('Давай, шепни название… я вся во внимании')
       .setRequired(true)
+      .setAutocomplete(true)      
   );
 
 export async function execute(interaction) {

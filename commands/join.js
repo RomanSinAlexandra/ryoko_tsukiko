@@ -13,7 +13,7 @@ export async function execute(interaction) {
   const voiceChannel = member?.voice?.channel;
 
   if (!voiceChannel) {
-    const msg = awaitinteraction.reply({
+    const msg = await interaction.reply({
       content: 'Если хочешь слышать мой голос поближе… заходи. Сейчас же.',
       ephemeral: true
     });

@@ -36,7 +36,7 @@ export async function playNext(guildId) {
   try {
     info = await fetchTrackInfo(query);
   } catch (e) {
-    const msg = await interaction.followUp('Не удалось получить информацию о треке');
+    const msg = await interaction.followUp('Информацию о треке не удалось взять… он сегодня прячется от меня.');
     autoDelete(msg);
     return playNext(guildId);
   }
@@ -75,7 +75,7 @@ export async function playNext(guildId) {
   setMode('music');
 
   const embed = new EmbedBuilder()
-    .setTitle('🎶 Сейчас играет')
+    .setTitle('Я поставила именно то, что ты хотел услышать первым. Нравится?')
     .setColor(0x5865F2)
     .addFields(
       { name: 'Название', value: info.title },
