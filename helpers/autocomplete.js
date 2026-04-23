@@ -1,5 +1,6 @@
 import { radioStations } from '../radio/radio.js';
 import { searchAnime } from '../helpers/kitsu.js';
+import { Image } from '../models/Image.js';
 import fetch from 'node-fetch';
 import axios from 'axios';
 
@@ -25,18 +26,20 @@ export async function handleAutocomplete(interaction, client) {
 
     /* ================= RYOKO ================= */
     if (interaction.commandName === 'ryoko' && focusedOption.name === 'category') {
-      const res = await fetch('http://localhost:3000/api/categories');
-      const categories = await res.json();
+      const focused = interaction.options.getFocused().toLowerCase();
 
-      const choices = categories
-        .filter(cat => cat.toLowerCase().includes(value))
-        .slice(0, 25)
-        .map(cat => ({
-          name: cat,
-          value: cat
-        }));
+      const categories = await Image.distinct('category');
 
-      return await interaction.respond(choices);
+      const filtered = categories
+        .filter(c => c.includes(focused))
+        .slice(0, 25);
+
+      return interaction.respond(
+        filtered.map(c => ({
+          name: c,
+          value: c
+        }))
+      );
     }
 
     /* ================= ANIME ================= */

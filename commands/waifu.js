@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import axios from 'axios';  
 import { autoDelete } from '../helpers/autoDelete.js';
+import axios from 'axios';  
 
 export const data = new SlashCommandBuilder()
   .setName('waifu')
@@ -26,9 +26,6 @@ export async function execute(interaction) {
   try {
     const params = {};
 
-    /* =============================
-       🔐 РЕЖИМ ДОСТУПА
-    ============================= */
   let realNsfw = nsfw;
   let nsfwTagUsed = false;
 
@@ -59,9 +56,6 @@ export async function execute(interaction) {
       return;
     }
 
-    /* =============================
-       🏷 ТЕГИ
-    ============================= */
     if (tag) {
       params.IncludedTags = tag;
     }
@@ -78,9 +72,6 @@ export async function execute(interaction) {
       return;
     }
 
-    /* =============================
-       🧹 ДОП. ФИЛЬТР (страховка)
-    ============================= */
     const safeItems = realNsfw
       ? items
       : items.filter(i => i.isNsfw === false);

@@ -1,0 +1,27 @@
+version: '3.9'
+
+services:
+  bot:
+    build: .
+    container_name: ryoko_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - mongo
+    volumes:
+      - ./cookies.txt:/cookies.txt
+    command: node index.js
+
+  mongo:
+    image: mongo:7
+    container_name: ryoko_mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:

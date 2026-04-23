@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, AttachmentBuilder } from 'discord.js';
-import fetch from 'node-fetch';
+import { getImagesByCategory } from '../services/imageService.js';
+import { autoDelete } from '../helpers/autoDelete.js';
 
 export const data = new SlashCommandBuilder()
   .setName('ryoko')
@@ -7,27 +8,27 @@ export const data = new SlashCommandBuilder()
   .addStringOption(option =>
     option
       .setName('category')
-      .setDescription('Какую меня хочешь сегодня?.. Назови категорию, не стесняйся.')
+      .setDescription('Какую меня хочешь сегодня?.. Назови категорию.')
       .setRequired(true)
       .setAutocomplete(true)
   );
 
 export async function execute(interaction) {
   const category = interaction.options.getString('category');
+
   await interaction.deferReply();
 
   try {
-    const res = await fetch(
-      `http://localhost:3000/api/image?category=${encodeURIComponent(category)}`
-    );
+    const images = await getImagesByCategory(category, interaction.channel?.nsfw);
 
-    const images = await res.json();
-
-    if (!res.ok || !images.length) {
-      return interaction.editReply('е мои фото сегодня капризничают… Придётся тебе фантазировать самому.');
+    if (!images.length) {
+      const msg = await interaction.editReply(
+        'Сегодня мои фото капризничают… ничего не нашлось.'
+      );
+      autoDelete(msg);
+      return;
     }
 
-    // 🎲 случайная картинка
     const random = images[Math.floor(Math.random() * images.length)];
 
     const file = new AttachmentBuilder(random.url);
@@ -39,6 +40,9 @@ export async function execute(interaction) {
 
   } catch (err) {
     console.error(err);
-    await interaction.editReply('Даже API отказывается меня отдавать… Похоже, хочет, чтобы ты фантазировал сам.');
+    const msg = await interaction.editReply(
+      'Что-то пошло не так… даже база не хочет делиться.'
+    );
+    autoDelete(msg);
   }
 }

@@ -27,3 +27,10 @@ export function getState() {
 export function setMode(mode) {
   state.mode = mode;
 }
+
+player.on('error', error => {
+  console.error('❌ Ошибка аудио-плеера:', error.message);
+  if (error.resource && error.resource.metadata) {
+    console.error('На ресурсе:', error.resource.metadata);
+  }
+});

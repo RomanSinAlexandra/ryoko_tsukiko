@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { formatDuration } from '../helpers/formatDuration.js';
+import { formatDuration } from './formatDuration.js';
 
 export function fetchTrackInfo(query) {
   return new Promise((resolve, reject) => {

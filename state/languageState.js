@@ -1,0 +1,1 @@
+export const userLangState = new Map(); 

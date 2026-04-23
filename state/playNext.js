@@ -5,7 +5,7 @@ import {
   getVoiceConnection
 } from '@discordjs/voice';
 
-import { player, queue, state, setMode } from '../state/state.js';
+import { player, queue, state, setMode } from './state.js';
 import { EmbedBuilder } from 'discord.js';
 import { autoDelete } from '../helpers/autoDelete.js';
 import { spawn } from 'child_process';
@@ -91,7 +91,7 @@ export async function playNext(guildId) {
     playNext(guildId);
   });
   
-  //  ytdlp.stderr.on('data', d => console.error(`yt-dlp: ${d}`));
-  //  ffmpeg.stderr.on('data', d => console.error(`ffmpeg: ${d}`));
+    ytdlp.stderr.on('data', d => console.error(`yt-dlp: ${d}`));
+    ffmpeg.stderr.on('data', d => console.error(`ffmpeg: ${d}`));
     
 }

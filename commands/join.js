@@ -22,7 +22,6 @@ export async function execute(interaction) {
     return;
   }
 
-  // Если уже подключены — не переподключаемся
   const existing = getVoiceConnection(interaction.guildId);
   if (existing) {
     const msg = await interaction.reply({

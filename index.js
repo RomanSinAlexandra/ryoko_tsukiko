@@ -6,6 +6,7 @@ import { deployCommands } from './helpers/deploy-commands.js';
 import { handleAutocomplete } from './helpers/autocomplete.js';
 import * as waifuart from './commands/waifu.js';
 import { autoDelete } from './helpers/autoDelete.js';
+import { connectDB } from './services/db.js';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ const client = new Client({
 client.commands = new Collection();
 client.commands.set('waifuart', waifuart);
 
+connectDB(client);
 
 const commandsPath = path.resolve('./commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));

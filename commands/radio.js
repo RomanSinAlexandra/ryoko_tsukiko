@@ -9,6 +9,7 @@ import { radioStations } from '../radio/radio.js';
 import { player, queue, state, setMode } from '../state/state.js';
 import { cancelAutoLeave } from '../helpers/autoLeave.js';
 import { autoDelete } from '../helpers/autoDelete.js';
+import { spawn } from 'child_process';
 
 export const name = 'radio';
 
@@ -71,10 +72,36 @@ export async function execute(interaction) {
   player.stop();
   setMode('radio', interaction);
 
-  const resource = createAudioResource(station.url, {
-    inputType: StreamType.Arbitrary
+  const ffmpegProcess = spawn('ffmpeg', [
+    '-reconnect', '1',
+    '-reconnect_streamed', '1',
+    '-reconnect_delay_max', '5',
+    '-i', station.url,
+    '-loglevel', 'warning',
+    '-f', 's16le',
+    '-ar', '48000',
+    '-ac', '2',
+    'pipe:1'
+  ]);
+
+  ffmpegProcess.stderr.on('data', (data) => {
+    const message = data.toString();
+    if (message.includes('Connection reset by peer') || message.includes('Broken pipe')) {
+      return; 
+    }
+    console.error(`[FFmpeg Error] ${message}`);
   });
 
+  ffmpegProcess.stdout.on('close', () => {
+    if (!ffmpegProcess.killed) {
+      ffmpegProcess.kill('SIGKILL');
+    }
+  });
+
+  const resource = createAudioResource(ffmpegProcess.stdout, {
+    inputType: StreamType.Raw
+  });
+  
   state.currentRadio = {
     key,
     title: station.title,
