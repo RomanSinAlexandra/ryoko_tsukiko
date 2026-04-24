@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
-import { queue, state } from '../state/state.js';
+import { getGuildData } from '../state/state.js'; // Импортируем получение данных сервера
 import { fetchTrackInfo } from '../helpers/fetchTrackInfo.js';
+import { autoDelete } from '../helpers/autoDelete.js';
 
 export const name = 'queue';
 
@@ -9,41 +10,50 @@ export const data = new SlashCommandBuilder()
   .setDescription('Очередь треков… интересно, сколько из них ты выбрал, думая обо мне.');
 
 export async function execute(interaction) {
-  if (state.mode === 'radio') {
+  const guildId = interaction.guildId;
+  const guildData = getGuildData(guildId); // Получаем данные именно этого сервера
+
+  // Проверяем режим именно этого сервера
+  if (guildData.mode === 'radio') {
     return interaction.reply({
-      content: 'Радио захватило меня… но ты же можешь меня отобрать, если очень постараешься.',
+      content: 'Радио захватило меня… но ты же можешь меня отобрать, если очень постараешься. Сначала /stop.',
       flags: MessageFlags.Ephemeral
     });
   }
 
-  if (!queue.length) {
+  // Проверяем очередь этого сервера
+  if (!guildData.queue.length) {
     return interaction.reply({
-      content: 'Очередь пуста… Хочешь занять всё моё внимание сам?',
+      content: 'Очередь пуста… Хочешь занять всё моё внимание сам? Просто добавь трек через /play.',
       flags: MessageFlags.Ephemeral
     });
   }
 
+  // Используем deferReply, так как fetchTrackInfo может занять время
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const maxItems = 5;
 
+  // Берем первые треки из очереди этого сервера
   const tracks = await Promise.all(
-    queue.slice(0, maxItems).map(async (item, index) => {
+    guildData.queue.slice(0, maxItems).map(async (item, index) => {
       try {
         const info = await fetchTrackInfo(item.query);
         return `**${index + 1}.** ${info.title} \`[${info.duration}]\``;
       } catch {
-        return `**${index + 1}.**Не удалось достать данные… Похоже, сегодня я останусь единственным, что ты услышишь.`;
+        return `**${index + 1}.** Не удалось достать данные… Но я всё равно помню, что ты это просил.`;
       }
     })
   );
 
   const extra =
-    queue.length > maxItems
-      ? `\n…и ещё **${queue.length - maxItems}** трек(ов)`
+    guildData.queue.length > maxItems
+      ? `\n…и ещё **${guildData.queue.length - maxItems}** трек(ов)`
       : '';
 
+  const responseContent = `**Очередь треков… смотри, сколько ещё моментов мы проведём вместе:**\n\n${tracks.join('\n')}${extra}`;
+
   await interaction.editReply({
-    content: `**Очередь треков… смотри, сколько ещё моментов мы проведём вместе:**\n\n${tracks.join('\n')}${extra}`
+    content: responseContent
   });
 }

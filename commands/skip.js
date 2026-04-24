@@ -1,5 +1,5 @@
-import { player, queue, state } from '../state/state.js';
 import { AudioPlayerStatus } from '@discordjs/voice';
+import { getGuildData } from '../state/state.js';
 import { SlashCommandBuilder } from 'discord.js';
 import { autoDelete } from '../helpers/autoDelete.js';
 
@@ -10,32 +10,37 @@ export const data = new SlashCommandBuilder()
   .setDescription('Скучно стало? Пропускаем… надеюсь, я тебя не разочарую дальше.');
 
 export async function execute(interaction) {
+  const guildId = interaction.guildId;
+  const guildData = getGuildData(guildId);
 
-  if (state.mode === 'radio') {
-    const msg = interaction.reply({
-      content: 'Пропуск недоступен — радио слишком упрямое. Хочешь тишины? Тогда прикажи мне остановить его.',
-      ephemeral: true
+  if (guildData.mode === 'radio') {
+    const msg = await interaction.reply({
+      content: 'Пропуск недоступен — радио слишком упрямое. Хочешь тишины? Тогда /stop.',
+      ephemeral: true,
+      fetchReply: true
     });
     autoDelete(msg);
     return;
   }
 
-  if (!player || player.state.status !== AudioPlayerStatus.Playing) {
-    const msg = interaction.reply({
+  // Проверяем, играет ли что-то сейчас
+  if (guildData.player.state.status !== AudioPlayerStatus.Playing) {
+    const msg = await interaction.reply({
       content: 'Пусто… как и мои мысли без твоего следующего приказа.',
-      ephemeral: true
+      ephemeral: true,
+      fetchReply: true
     });
     autoDelete(msg);
     return;
   }
 
-  if (!queue.length) {
-    const msg = await interaction.reply('Скучно? Пропускаем… Следующая будет уже только для тебя.');
-    autoDelete(msg);
-  } else {
-    const msg = await interaction.reply('Ушёл… А ты останешься со мной подольше?');
-    autoDelete(msg);
-  }
+  let replyText = guildData.queue.length > 0 
+    ? 'Ушёл… А ты останешься со мной подольше? Включаю следующий трек.' 
+    : 'Скучно? Пропускаем… Очередь пуста, так что я побуду в тишине, пока ты не выберешь что-то новое.';
 
-  player.stop(true);
+  const msg = await interaction.reply({ content: replyText, fetchReply: true });
+  autoDelete(msg);
+
+  // Остановка плеера вызовет событие Idle в playNext.js, которое запустит следующий трек
+  guildData.player.stop(true);
 }

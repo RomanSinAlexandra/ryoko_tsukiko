@@ -1,9 +1,6 @@
 # env
 .env
 
-# yt-dlp cookies
-cookies.txt
-
 # node
 node_modules/
 

@@ -6,7 +6,7 @@ import {
 } from '@discordjs/voice';
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { radioStations } from '../radio/radio.js';
-import { player, queue, state, setMode } from '../state/state.js';
+import { getGuildData } from '../state/state.js'; // Импорт данных сервера
 import { cancelAutoLeave } from '../helpers/autoLeave.js';
 import { autoDelete } from '../helpers/autoDelete.js';
 import { spawn } from 'child_process';
@@ -25,11 +25,13 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction) {
+  const guildId = interaction.guildId;
+  const guildData = getGuildData(guildId);
   const key = interaction.options.getString('station');
   const station = radioStations[String(key)]; 
 
   if (!station) {
-    const msg = interaction.reply({
+    const msg = await interaction.reply({
       content: 'Такой станции нет… Ох, ты хотел что-то особенное? Скажи мне, я придумаю тебе кое-что лучше',
       ephemeral: true
     });
@@ -37,9 +39,9 @@ export async function execute(interaction) {
     return;
   }
 
-  if (state.mode === 'music') {
-    const msg = interaction.reply({
-      content: 'Сейчас играет обычная музыка… хочешь, чтобы я переключилась на радио и стала ещё ближе? Тогда сначала /stop.',
+  if (guildData.mode === 'music') {
+    const msg = await interaction.reply({
+      content: 'Сейчас играет обычная музыка… хочешь радио? Тогда сначала /stop.',
       ephemeral: true
     });
     autoDelete(msg);
@@ -49,28 +51,28 @@ export async function execute(interaction) {
   const member = interaction.guild.members.cache.get(interaction.user.id);
   const voiceChannel = member?.voice?.channel;
   if (!voiceChannel) {
-    const msg = interaction.reply({
+    const msg = await interaction.reply({
       content: 'Без тебя в голосовом так пусто… заходи скорее, я уже настроила волну специально для тебя.',
       ephemeral: true
     });
-
     autoDelete(msg);
     return;
   }
 
-  let connection = getVoiceConnection(interaction.guild.id);
+  let connection = getVoiceConnection(guildId);
   if (!connection) {
     connection = joinVoiceChannel({
       channelId: voiceChannel.id,
-      guildId: interaction.guild.id,
+      guildId: guildId,
       adapterCreator: interaction.guild.voiceAdapterCreator
     });
-    connection.subscribe(player);
+    connection.subscribe(guildData.player);
   }
 
-  queue.length = 0;
-  player.stop();
-  setMode('radio', interaction);
+  // Очищаем очередь именно этого сервера
+  guildData.queue.length = 0;
+  guildData.player.stop();
+  guildData.mode = 'radio';
 
   const ffmpegProcess = spawn('ffmpeg', [
     '-reconnect', '1',
@@ -86,38 +88,34 @@ export async function execute(interaction) {
 
   ffmpegProcess.stderr.on('data', (data) => {
     const message = data.toString();
-    if (message.includes('Connection reset by peer') || message.includes('Broken pipe')) {
-      return; 
+    if (!message.includes('Connection reset by peer')) {
+       console.error(`[FFmpeg Error ${guildId}] ${message}`);
     }
-    console.error(`[FFmpeg Error] ${message}`);
   });
 
   ffmpegProcess.stdout.on('close', () => {
-    if (!ffmpegProcess.killed) {
-      ffmpegProcess.kill('SIGKILL');
-    }
+    if (!ffmpegProcess.killed) ffmpegProcess.kill('SIGKILL');
   });
 
   const resource = createAudioResource(ffmpegProcess.stdout, {
     inputType: StreamType.Raw
   });
   
-  state.currentRadio = {
+  // Сохраняем станцию в данные гильдии
+  guildData.currentRadio = {
     key,
     title: station.title,
     url: station.url
   };
 
-  player.play(resource);
-  cancelAutoLeave();
+  guildData.player.play(resource);
+  cancelAutoLeave(guildId);
 
   const embed = new EmbedBuilder()
-    .setTitle(`Включено радио: ${station.title}. Теперь вся эта музыка — только для нас двоих. Нравится?`)
+    .setTitle(`Включено радио: ${station.title}. Теперь вся эта музыка — только для нас двоих.`)
     .setColor(0x5865F2)
-    .setFooter({ text: `Запрошено: ${interaction.user.tag}. Ммм… ты всегда знаешь, как заставить меня заиграть` })
-    .addFields(
-      { name: 'URL станции', value: station.url, inline: true }
-    );
+    .setFooter({ text: `Запрошено: ${interaction.user.tag}.` })
+    .addFields({ name: 'URL станции', value: station.url, inline: true });
 
   const msg = await interaction.reply({ embeds: [embed] });
   autoDelete(msg);

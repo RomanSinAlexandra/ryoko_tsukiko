@@ -1,8 +1,8 @@
-import { getPlayer, getQueue, state, setMode } from '../state/state.js';
-import { scheduleAutoLeave } from '../helpers/autoLeave.js';
 import { getVoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
 import { SlashCommandBuilder } from 'discord.js';
-import { autoDelete } from '../helpers/autoDelete.js'
+import { getGuildData } from '../state/state.js';
+import { scheduleAutoLeave } from '../helpers/autoLeave.js';
+import { autoDelete } from '../helpers/autoDelete.js';
 
 export const name = 'stop';
 
@@ -11,11 +11,13 @@ export const data = new SlashCommandBuilder()
   .setDescription('Остановить музыку');
 
 export async function execute(interaction) {
-  const player = getPlayer();
-  const queue = getQueue();
+  const guildId = interaction.guildId;
+  const guildData = getGuildData(guildId);
+  const connection = getVoiceConnection(guildId);
 
-  if (!player || (state.mode === 'idle' && queue.length === 0)) {
-    const msg = interaction.reply({
+  // Проверка: играет ли что-то именно на этом сервере
+  if (!connection || (guildData.mode === 'idle' && guildData.queue.length === 0)) {
+    const msg = await interaction.reply({
       content: 'Тишина… как мило. Ничего не играет, зато ты можешь услышать только мой голос.',
       ephemeral: true
     });
@@ -23,25 +25,14 @@ export async function execute(interaction) {
     return;
   }
 
-  player.stop();
-
-  queue.length = 0;
-
-  setMode('idle');
+  // Останавливаем музыку только здесь
+  guildData.player.stop();
+  guildData.queue.length = 0;
+  guildData.mode = 'idle';
 
   const msg = await interaction.reply('Всё затихло… теперь только ты и я. Нравится эта тишина?');
-
-  const connection = getVoiceConnection(interaction.guildId);
-  if (connection) {
-    setTimeout(() => {
-
-      if (state.mode === 'idle' && connection.state.status !== VoiceConnectionStatus.Destroyed) {
-        connection.destroy();
-      }
-    }, 30000);
-  }
-
   autoDelete(msg);
-  
-  scheduleAutoLeave(interaction.guildId);
+
+  // Запускаем таймер авто-выхода для этого сервера
+  scheduleAutoLeave(guildId);
 }

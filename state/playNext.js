@@ -5,32 +5,33 @@ import {
   getVoiceConnection
 } from '@discordjs/voice';
 
-import { player, queue, state, setMode } from './state.js';
+import { getGuildData } from '../state/state.js'; // 👈 Изменили импорт
 import { EmbedBuilder } from 'discord.js';
 import { autoDelete } from '../helpers/autoDelete.js';
 import { spawn } from 'child_process';
 import prism from 'prism-media';
 import { fetchTrackInfo } from '../helpers/fetchTrackInfo.js';
 
-let timeout;
-
 export async function playNext(guildId) {
-  if (!queue.length) {
-    timeout = setTimeout(() => {
+  const guildData = getGuildData(guildId); // 👈 Берем данные сервера
+
+  if (!guildData.queue.length) {
+    // Используем индивидуальный таймер
+    guildData.playNextTimeout = setTimeout(() => {
       const connection = getVoiceConnection(guildId);
       if (connection) connection.destroy();
-      player.stop();
-      state.mode = 'idle';
+      guildData.player.stop();
+      guildData.mode = 'idle';
     }, 30000);
     return;
   }
 
-  if (timeout) {
-    clearTimeout(timeout);
-    timeout = null;
+  if (guildData.playNextTimeout) {
+    clearTimeout(guildData.playNextTimeout);
+    guildData.playNextTimeout = null;
   }
 
-  const { query, interaction } = queue.shift();
+  const { query, interaction } = guildData.queue.shift();
 
   let info;
   try {
@@ -71,8 +72,9 @@ export async function playNext(guildId) {
     inputType: StreamType.Opus
   });
 
-  player.play(resource);
-  setMode('music');
+  // Запускаем на плеере сервера
+  guildData.player.play(resource);
+  guildData.mode = 'music';
 
   const embed = new EmbedBuilder()
     .setTitle('Я поставила именно то, что ты хотел услышать первым. Нравится?')
@@ -87,11 +89,11 @@ export async function playNext(guildId) {
   const msg = await interaction.followUp({ embeds: [embed] });
   autoDelete(msg);
 
-  player.once(AudioPlayerStatus.Idle, () => {
+  // Обязательно используем .once, чтобы обработчики не накапливались
+  guildData.player.once(AudioPlayerStatus.Idle, () => {
     playNext(guildId);
   });
   
-    ytdlp.stderr.on('data', d => console.error(`yt-dlp: ${d}`));
-    ffmpeg.stderr.on('data', d => console.error(`ffmpeg: ${d}`));
-    
+  ytdlp.stderr.on('data', d => console.error(`yt-dlp [${guildId}]: ${d}`));
+  ffmpeg.stderr.on('data', d => console.error(`ffmpeg [${guildId}]: ${d}`));
 }

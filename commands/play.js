@@ -1,10 +1,12 @@
 import {
   joinVoiceChannel,
   AudioPlayerStatus,
-  getVoiceConnection
+  getVoiceConnection,
+  VoiceConnectionStatus,
+  entersState // 👈 ВАЖНО: добавил недостающий импорт
 } from '@discordjs/voice';
 
-import { player, queue, state } from '../state/state.js';
+import { getGuildData } from '../state/state.js'; // 👈 Изменили импорт
 import spotify from 'spotify-url-info';
 import { cancelAutoLeave } from '../helpers/autoLeave.js';
 import { SlashCommandBuilder } from 'discord.js';
@@ -26,66 +28,77 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction) {
+  const guildId = interaction.guild.id;
+  const guildData = getGuildData(guildId); // 👈 Получаем данные ИМЕННО этого сервера
+
+  cancelAutoLeave(guildId); // 👈 Передаем guildId
+
   const query = interaction.options.getString('query'); 
-
-  if (!query) {
-    const msg = interaction.reply('Назови песню… или лучше — скажи, о чём ты сейчас думаешь, глядя на меня.');
-    autoDelete(msg);
-    return;
-  }
-
   const member = interaction.guild.members.cache.get(interaction.user.id);
   const voiceChannel = member?.voice?.channel;
+
   if (!voiceChannel){
-    const msg = interaction.reply('Без тебя в голосовом так пусто… заходи, пока я не заскучала по-настоящему.');
+    const msg = await interaction.reply('Без тебя в голосовом так пусто… заходи, пока я не заскучала по-настоящему.');
     autoDelete(msg);
     return;
   }
 
-  let connection = getVoiceConnection(interaction.guild.id);
+  let connection = getVoiceConnection(guildId);
+  
   if (!connection) {
     connection = joinVoiceChannel({
       channelId: voiceChannel.id,
-      guildId: interaction.guild.id,
+      guildId: guildId,
       adapterCreator: interaction.guild.voiceAdapterCreator
     });
-    connection.subscribe(player);
+    
+    // Подписываемся на плеер ЭТОГО сервера
+    connection.subscribe(guildData.player);
+
+    connection.on(VoiceConnectionStatus.Disconnected, async () => {
+        try {
+            await Promise.race([
+                entersState(connection, VoiceConnectionStatus.Signalling, 1000),
+                entersState(connection, VoiceConnectionStatus.Connecting, 1000),
+            ]);
+        } catch (e) {
+            console.log(`🚪 Рёко покинула канал на сервере ${guildId}.`);
+            guildData.mode = 'idle';
+            guildData.queue.length = 0;
+            if (connection.state.status !== VoiceConnectionStatus.Destroyed) {
+                connection.destroy();
+            }
+        }
+    });
   }
 
-  if (state.mode === 'radio') {
-    const msg = interaction.reply(
-      'Радио мешает… Хочешь, чтобы я звучала только для тебя? Тогда /stop.'
-    );
+  if (guildData.mode === 'radio') {
+    const msg = await interaction.reply('Радио мешает… Хочешь, чтобы я звучала только для тебя? Тогда /stop.');
     autoDelete(msg);
     return;
   }
 
-  if (query.includes('open.spotify.com')) {
+  let searchQuery = query;
+  if (query.includes('spotify.com')) {
     try {
       const data = await getData(query);
-      query = `${data.artist?.name ?? data.artists[0].name} - ${data.name}`;
+      searchQuery = `${data.artist?.name ?? data.artists[0].name} - ${data.name}`;
     } catch (e) {
-      const msg = interaction.reply('Spotify-ссылка не поддалась… Какая дерзость. Попробуй ещё раз — и на этот раз лучше не разочаровывай меня.');
+      const msg = await interaction.reply('Spotify-ссылка не поддалась… Попробуй ещё раз.');
       autoDelete(msg);
       return;
     }
   }
 
-  queue.push({ query, interaction });
-  const msg = await interaction.reply(`Твоя песня встала в очередь… как и ты — в мои мысли на сегодня: **${query}**`);
+  // Пушим песню в очередь ЭТОГО сервера
+  guildData.queue.push({ query: searchQuery, interaction });
+  guildData.mode = 'music';
+
+  const msg = await interaction.reply(`Твоя песня встала в очередь… как и ты — в мои мысли: **${searchQuery}**`);
   autoDelete(msg);
 
-  if (player.state.status !== AudioPlayerStatus.Playing) {
-    playNext(interaction.guild.id);
+  // Проверяем статус плеера ЭТОГО сервера
+  if (guildData.player.state.status !== AudioPlayerStatus.Playing) {
+    playNext(guildId);
   }
-}
-
-cancelAutoLeave();
-
-export function getPlayer() {
-  return player;
-}
-
-export function getQueue() {
-  return queue;
 }

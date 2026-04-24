@@ -1,28 +1,27 @@
 import { getVoiceConnection } from '@discordjs/voice';
-import { state } from '../state/state.js';
+import { getGuildData } from '../state/state.js';
 
-/**
-  @param {string} guildId 
- */
 export function scheduleAutoLeave(guildId) {
+  const guildData = getGuildData(guildId);
 
-  if (state.autoLeaveTimeout) {
-    clearTimeout(state.autoLeaveTimeout);
-    state.autoLeaveTimeout = null;
+  if (guildData.autoLeaveTimeout) {
+    clearTimeout(guildData.autoLeaveTimeout);
   }
 
-  state.autoLeaveTimeout = setTimeout(() => {
+  guildData.autoLeaveTimeout = setTimeout(() => {
     const connection = getVoiceConnection(guildId);
-    if (connection && state.mode === 'idle') {
+    if (connection && guildData.mode === 'idle') {
       connection.destroy();
+      console.log(`🤖 Рёко покинула сервер ${guildId} из-за скуки.`);
     }
-    state.autoLeaveTimeout = null;
-  }, 120000);
+    guildData.autoLeaveTimeout = null;
+  }, 30000); 
 }
 
-export function cancelAutoLeave() {
-  if (state.autoLeaveTimeout) {
-    clearTimeout(state.autoLeaveTimeout);
-    state.autoLeaveTimeout = null;
+export function cancelAutoLeave(guildId) {
+  const guildData = getGuildData(guildId);
+  if (guildData.autoLeaveTimeout) {
+    clearTimeout(guildData.autoLeaveTimeout);
+    guildData.autoLeaveTimeout = null;
   }
 }

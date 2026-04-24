@@ -9,26 +9,26 @@ export const data = new SlashCommandBuilder()
   .setDescription('Хочешь посмотреть, какие мелодии я готова для тебя включить?');
 
 export async function execute(interaction) {
-  await interaction.deferReply();
-
+  // Используем обычный reply, если список небольшой
   const entries = Object.entries(radioStations);
 
   if (!entries.length) {
-    const msg = interaction.editReply('Радиостанций нет… Ох, даже музыка сегодня стесняется перед тобой. Может, просто послушаем тишину вдвоём?');
+    const msg = await interaction.reply('Радиостанций нет… Может, просто послушаем тишину вдвоём?');
     autoDelete(msg);
     return;
   }
 
   const description = entries
-    .map(([key, station]) => `**${station.title}**`)
+    .map(([key, station]) => `• **${station.title}**`)
     .join('\n');
 
   const embed = new EmbedBuilder()
-    .setTitle('Смотри внимательно — каждая из них может стать нашей маленькой тайной на сегодня')
+    .setTitle('Смотри внимательно — каждая из них может стать нашей маленькой тайной')
     .setColor(0x5865F2)
     .setDescription(description);
 
-  await interaction.editReply({ 
+  // Отправляем эфемерно, чтобы не засорять чат всем
+  await interaction.reply({ 
     embeds: [embed], 
     flags: MessageFlags.Ephemeral
   });

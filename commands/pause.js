@@ -1,5 +1,5 @@
 import { AudioPlayerStatus } from '@discordjs/voice';
-import { player, state, setMode } from '../state/state.js';
+import { getGuildData } from '../state/state.js'; // Используем новую функцию
 import { scheduleAutoLeave } from '../helpers/autoLeave.js';
 import { SlashCommandBuilder } from 'discord.js';
 import { autoDelete } from '../helpers/autoDelete.js';
@@ -11,8 +11,11 @@ export const data = new SlashCommandBuilder()
   .setDescription('Тсс… замри. Пусть музыка подождёт, пока я на тебя смотрю.');
 
 export async function execute(interaction) {
-  if (state.mode === 'radio') {
-    const msg = interaction.reply({
+  const guildId = interaction.guildId;
+  const guildData = getGuildData(guildId);
+
+  if (guildData.mode === 'radio') {
+    const msg = await interaction.reply({
       content: 'Радио не слушается меня… а ты ведь слушаешься?',
       ephemeral: true
     });
@@ -20,17 +23,11 @@ export async function execute(interaction) {
     return;
   }
 
-  if (!player) {
-    const msg = interaction.reply({
-      content: 'Плеер ещё не проснулся… Хочешь, чтобы я его разбудила лично для тебя?',
-      ephemeral: true
-    });
-    autoDelete(msg);
-    return;
-  }
+  // Проверяем статус плеера конкретного сервера
+  const isPlaying = guildData.player.state.status === AudioPlayerStatus.Playing;
 
-  if (player.state.status !== AudioPlayerStatus.Playing) {
-    const msg = interaction.reply({
+  if (!isPlaying) {
+    const msg = await interaction.reply({
       content: 'Ничего не играет… Хочешь, я сама тебе спою? На ушко.',
       ephemeral: true
     });
@@ -38,11 +35,12 @@ export async function execute(interaction) {
     return;
   }
 
-  player.pause(true);
-  setMode('paused');
+  guildData.player.pause();
+  guildData.mode = 'paused';
 
   const msg = await interaction.reply('Замерла… как ты, когда я смотрю тебе прямо в глаза.');
   autoDelete(msg);
 
-  scheduleAutoLeave(interaction.guildId);
+  // Передаем guildId в планировщик выхода
+  scheduleAutoLeave(guildId);
 }

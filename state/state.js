@@ -1,36 +1,31 @@
 import { createAudioPlayer } from '@discordjs/voice';
 
-// Общий AudioPlayer для всего бота
-export const player = createAudioPlayer();
+// Хранилище: ключ - ID сервера, значение - объект с данными сервера
+const servers = new Map();
 
-// Очередь для музыки
-export const queue = [];
+export function getGuildData(guildId) {
+  // Если для этого сервера еще нет данных — создаем их
+  if (!servers.has(guildId)) {
+    const player = createAudioPlayer();
+    
+    // Ошибки плеера вешаем сразу при создании
+    player.on('error', error => {
+      console.error(`❌ Ошибка аудио-плеера на сервере ${guildId}:`, error.message);
+    });
 
-// Режим воспроизведения: 'idle' | 'music' | 'radio'
-export const state = {
-  mode: 'idle'
-};
-
-// Функции для удобного доступа
-export function getPlayer() {
-  return player;
-}
-
-export function getQueue() {
-  return queue;
-}
-
-export function getState() {
-  return state;
-}
-
-export function setMode(mode) {
-  state.mode = mode;
-}
-
-player.on('error', error => {
-  console.error('❌ Ошибка аудио-плеера:', error.message);
-  if (error.resource && error.resource.metadata) {
-    console.error('На ресурсе:', error.resource.metadata);
+    servers.set(guildId, {
+      player: player,
+      queue: [],
+      mode: 'idle', // 'idle' | 'music' | 'radio'
+      autoLeaveTimeout: null,
+      playNextTimeout: null // Перенесли таймер из playNext сюда
+    });
   }
-});
+  
+  return servers.get(guildId);
+}
+
+// Если бот выходит, можно очистить память (по желанию)
+export function deleteGuildData(guildId) {
+  servers.delete(guildId);
+}
