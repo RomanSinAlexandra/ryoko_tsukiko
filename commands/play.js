@@ -3,17 +3,21 @@ import {
   AudioPlayerStatus,
   getVoiceConnection,
   VoiceConnectionStatus,
-  entersState // 👈 ВАЖНО: добавил недостающий импорт
+  entersState
 } from '@discordjs/voice';
 
-import { getGuildData } from '../state/state.js'; // 👈 Изменили импорт
-import spotify from 'spotify-url-info';
+import { getGuildData } from '../state/state.js';
 import { cancelAutoLeave } from '../helpers/autoLeave.js';
 import { SlashCommandBuilder } from 'discord.js';
 import { autoDelete } from '../helpers/autoDelete.js';
 import { playNext } from '../state/playNext.js';
 
-const { getData } = spotify;
+import fetch from 'node-fetch';
+import spotifyUrlInfo from 'spotify-url-info';
+// Для извлечения треков из YouTube-плейлистов используем сам yt-dlp
+import ytDlp from 'yt-dlp-exec'; 
+
+const spotify = spotifyUrlInfo(fetch);
 
 export const name = 'play';
 
@@ -29,9 +33,9 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
   const guildId = interaction.guild.id;
-  const guildData = getGuildData(guildId); // 👈 Получаем данные ИМЕННО этого сервера
+  const guildData = getGuildData(guildId);
 
-  cancelAutoLeave(guildId); // 👈 Передаем guildId
+  cancelAutoLeave(guildId); 
 
   const query = interaction.options.getString('query'); 
   const member = interaction.guild.members.cache.get(interaction.user.id);
@@ -52,7 +56,6 @@ export async function execute(interaction) {
       adapterCreator: interaction.guild.voiceAdapterCreator
     });
     
-    // Подписываемся на плеер ЭТОГО сервера
     connection.subscribe(guildData.player);
 
     connection.on(VoiceConnectionStatus.Disconnected, async () => {
@@ -78,26 +81,98 @@ export async function execute(interaction) {
     return;
   }
 
-  let searchQuery = query;
-  if (query.includes('spotify.com')) {
+  // --- 1. ОБРАБОТКА SPOTIFY ---
+  const isSpotify = /https?:\/\/(open|play)\.spotify\.com\/(track|album|playlist)\/([a-zA-Z0-9]+)/.test(query);
+
+  if (isSpotify) {
     try {
-      const data = await getData(query);
-      searchQuery = `${data.artist?.name ?? data.artists[0].name} - ${data.name}`;
+      await interaction.deferReply();
+      const spotifyData = await spotify.getData(query);
+      let searchQuery = query;
+      
+      if (spotifyData.type === 'track') {
+        const artistName = spotifyData.artists?.[0]?.name || spotifyData.artist || 'Unknown Artist';
+        searchQuery = `${artistName} - ${spotifyData.name}`;
+        guildData.queue.push({ query: searchQuery, interaction });
+      } 
+      else if (spotifyData.tracks?.items || spotifyData.tracks) {
+        const tracks = spotifyData.tracks.items || spotifyData.tracks;
+        for (const item of tracks) {
+          const track = item.track || item; 
+          const artistName = track.artists?.[0]?.name || 'Unknown Artist';
+          guildData.queue.push({ query: `${artistName} - ${track.name}`, interaction });
+        }
+        searchQuery = `Сборник Spotify: ${spotifyData.name} (${tracks.length} треков)`;
+      } else {
+        throw new Error('Unsupported Spotify type');
+      }
+
+      guildData.mode = 'music';
+      const msg = await interaction.editReply(`Твои музыкальные вкусы… интригуют. Добавила в очередь: **${searchQuery}**`);
+      autoDelete(msg);
+
+      if (guildData.player.state.status !== AudioPlayerStatus.Playing) {
+        playNext(guildId);
+      }
+      return; 
     } catch (e) {
-      const msg = await interaction.reply('Spotify-ссылка не поддалась… Попробуй ещё раз.');
+      console.error('Ошибка парсинга Spotify:', e);
+      const msg = await interaction.editReply({ content: 'Spotify-ссылка не поддалась… Возможно, она приватная.' });
       autoDelete(msg);
       return;
     }
   }
 
-  // Пушим песню в очередь ЭТОГО сервера
-  guildData.queue.push({ query: searchQuery, interaction });
+  // --- 2. ОБРАБОТКА YOUTUBE ПЛЕЙЛИСТОВ ---
+  const isYoutubePlaylist = query.includes('list=');
+
+  if (isYoutubePlaylist) {
+    try {
+      // Парсинг большого плейлиста может занять время, резервируем ответ
+      await interaction.deferReply();
+
+      // Вызываем yt-dlp с флагом dumpSingleJson и flatPlaylist, чтобы не скачивать видео, а получить только инфо
+      const playlistInfo = await ytDlp(query, {
+        dumpSingleJson: true,
+        flatPlaylist: true,
+        noWarnings: true,
+      });
+
+      if (playlistInfo && playlistInfo.entries && playlistInfo.entries.length > 0) {
+        const tracks = playlistInfo.entries;
+
+        for (const entry of tracks) {
+          // Проверяем, что видео не удалено и имеет название
+          if (entry.title && entry.title !== '[Deleted video]' && entry.title !== '[Private video]') {
+            guildData.queue.push({ query: entry.title, interaction });
+          }
+        }
+
+        guildData.mode = 'music';
+        const msg = await interaction.editReply(`Ух ты, целый список... Развернула плейлист **${playlistInfo.title || 'YouTube'}**, добавлено треков: **${tracks.length}**.`);
+        autoDelete(msg);
+
+        if (guildData.player.state.status !== AudioPlayerStatus.Playing) {
+          playNext(guildId);
+        }
+      } else {
+        throw new Error('Playlist entries are empty');
+      }
+      return;
+    } catch (e) {
+      console.error('Ошибка парсинга плейлиста YouTube:', e);
+      const msg = await interaction.editReply({ content: 'Не удалось прочитать этот YouTube плейлист. Проверь, открытый ли он.' });
+      autoDelete(msg);
+      return;
+    }
+  }
+
+  guildData.queue.push({ query: query, interaction });
   guildData.mode = 'music';
 
-  const msg = await interaction.reply(`Твоя песня встала в очередь… как и ты — в мои мысли: **${searchQuery}**`);
+  const msg = await interaction.reply(`Твоя песня встала в очередь… как и ты — в мои мысли: **${query}**`);
   autoDelete(msg);
 
-  // Проверяем статус плеера ЭТОГО сервера
   if (guildData.player.state.status !== AudioPlayerStatus.Playing) {
     playNext(guildId);
   }

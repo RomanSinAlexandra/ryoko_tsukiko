@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
-import { getGuildData } from '../state/state.js'; // Импортируем получение данных сервера
+import { getGuildData } from '../state/state.js';
 import { fetchTrackInfo } from '../helpers/fetchTrackInfo.js';
 import { autoDelete } from '../helpers/autoDelete.js';
 
@@ -11,9 +11,8 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
   const guildId = interaction.guildId;
-  const guildData = getGuildData(guildId); // Получаем данные именно этого сервера
+  const guildData = getGuildData(guildId);
 
-  // Проверяем режим именно этого сервера
   if (guildData.mode === 'radio') {
     return interaction.reply({
       content: 'Радио захватило меня… но ты же можешь меня отобрать, если очень постараешься. Сначала /stop.',
@@ -21,7 +20,6 @@ export async function execute(interaction) {
     });
   }
 
-  // Проверяем очередь этого сервера
   if (!guildData.queue.length) {
     return interaction.reply({
       content: 'Очередь пуста… Хочешь занять всё моё внимание сам? Просто добавь трек через /play.',
@@ -29,12 +27,10 @@ export async function execute(interaction) {
     });
   }
 
-  // Используем deferReply, так как fetchTrackInfo может занять время
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const maxItems = 5;
 
-  // Берем первые треки из очереди этого сервера
   const tracks = await Promise.all(
     guildData.queue.slice(0, maxItems).map(async (item, index) => {
       try {
